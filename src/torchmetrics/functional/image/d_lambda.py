@@ -35,10 +35,13 @@ def _spectral_distortion_index_update(preds: Tensor, target: Tensor) -> Tuple[Te
         raise TypeError(
             f"Expected `ms` and `fused` to have the same data type. Got ms: {preds.dtype} and fused: {target.dtype}."
         )
-    _check_same_shape(preds, target)
     if len(preds.shape) != 4:
         raise ValueError(
             f"Expected `preds` and `target` to have BxCxHxW shape. Got preds: {preds.shape} and target: {target.shape}."
+        )
+    if preds.shape[:2] != target.shape[:2]:
+        raise ValueError(
+            f"Expected `preds` and `target` to have same batch and channel sizes. Got preds: {preds.shape} and target: {target.shape}."
         )
     return preds, target
 
@@ -70,11 +73,11 @@ def _spectral_distortion_index_compute(
         tensor(0.0234)
     """
     length = preds.shape[1]
-    m1 = torch.zeros((length, length))
-    m2 = torch.zeros((length, length))
+    m1 = torch.ones((length, length))
+    m2 = torch.ones((length, length))
 
     for k in range(length):
-        for r in range(k, length):
+        for r in range(k+1, length):
             m1[k, r] = m1[r, k] = universal_image_quality_index(target[:, k : k + 1, :, :], target[:, r : r + 1, :, :])
             m2[k, r] = m2[r, k] = universal_image_quality_index(preds[:, k : k + 1, :, :], preds[:, r : r + 1, :, :])
 
